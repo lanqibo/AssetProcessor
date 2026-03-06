@@ -1,0 +1,10 @@
+{
+  "name": "com.nty.asset-processor",   // 必须是这种反向域名格式，小写+点
+  "version": "1.0.0",
+  "displayName": "AssetProcessor",
+  "description": "Unity AssetPostProcessor Extension",
+  "unity": "2022.3",                   // 建议写你开发时用的最低 Unity 版本
+  "author": {
+    "name": "Lanqibo"
+  }
+}
