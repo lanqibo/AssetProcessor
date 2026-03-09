@@ -19,19 +19,27 @@ namespace NTY.AssetProcessor
     [Flags]
     public enum ProcessorTrigger
     {
-        None,
+        None = 0,
         /// <summary>
         /// 资产预处理阶段
         /// </summary>
-        OnPreprocessAsset,
+        OnPreprocessAsset = 1 << 1,
         /// <summary>
         /// 所有资产导入处理
         /// </summary>
-        OnPostprocessAllAssets,
+        OnPostprocessAllAssets = 1 << 2,
         /// <summary>
         /// 纹理预处理阶段
         /// </summary>
-        OnPreprocessTexture,
+        OnPreprocessTexture = 1 << 3,
+        /// <summary>
+        /// 模型预处理阶段（.fbx Model）
+        /// </summary>
+        OnPreprocessModel = 1 << 4,
+        /// <summary>
+        /// 动画预处理阶段（.fbx Animation）
+        /// </summary>
+        OnPreprocessAnimation = 1 << 5,
     }
 
     /// <summary>
@@ -40,11 +48,11 @@ namespace NTY.AssetProcessor
     [Flags]
     public enum PostprocessAction
     {
-        None,
-        Imported,
-        Deleted,
-        Moved,
-        MovedFrom
+        None = 0,
+        Imported = 1 << 1,
+        Deleted = 1 << 2,
+        Moved = 1 << 3,
+        MovedFrom = 1 << 4,
     }
 
     /// <summary>
@@ -69,13 +77,18 @@ namespace NTY.AssetProcessor
         /// 指定扩展名
         /// </summary>
         public string[] Extensions { get; }
+        /// <summary>
+        /// 忽略的文件名后缀
+        /// </summary>
+        public string[] IgnoreSuffixes { get;}
 
-        public ProcessorConditions(ProcessorTrigger triggers = ProcessorTrigger.None, PostprocessAction actions = PostprocessAction.None, string[] folders = null, string[] extensions = null)
+        public ProcessorConditions(ProcessorTrigger triggers = ProcessorTrigger.None, PostprocessAction actions = PostprocessAction.None, string[] folders = null, string[] extensions = null, string[] ignoreSuffixes = null)
         {
             Triggers = triggers;
             Actions = actions;
             Folders = folders;
             Extensions = extensions;
+            IgnoreSuffixes = ignoreSuffixes;
         }
 
         /// <summary>
@@ -96,7 +109,7 @@ namespace NTY.AssetProcessor
         /// <returns></returns>
         public bool IsMatch(string path)
         {
-            return IncludedFolder(path) && IncludedExtension(path);
+            return IncludedFolder(path) && IncludedExtension(path) && !IncludedIgnoreSuffix(path);
         }
 
         private bool IncludedFolder(string path)
@@ -122,6 +135,24 @@ namespace NTY.AssetProcessor
             var ext = Path.GetExtension(path);
             return Extensions.Contains(ext);
         }
+        
+        private bool IncludedIgnoreSuffix(string path)
+        {
+            if (IgnoreSuffixes == null)
+            {
+                return false;
+            }
+
+            var fileName = Path.GetFileNameWithoutExtension(path);
+            foreach (var suffix in IgnoreSuffixes)
+            {
+                if (fileName.EndsWith(suffix))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     /// <summary>
@@ -134,7 +165,7 @@ namespace NTY.AssetProcessor
             var sw = Stopwatch.StartNew();
             OnExecute(importer);
             sw.Stop();
-            UnityEngine.Debug.Log($"【AssetProcessor】{importer.assetPath}: {sw.Elapsed.TotalMilliseconds:F2} ms");
+            UnityEngine.Debug.Log($"【{this.GetType().Name}】{importer.assetPath}: {sw.Elapsed.TotalMilliseconds:F2} ms");
         }
 
         protected virtual void OnExecute(AssetImporter importer)
@@ -147,7 +178,7 @@ namespace NTY.AssetProcessor
             var sw = Stopwatch.StartNew();
             OnExecute(path);
             sw.Stop();
-            UnityEngine.Debug.Log($"【AssetProcessor】{path}: {sw.Elapsed.TotalMilliseconds:F2} ms");
+            UnityEngine.Debug.Log($"【{this.GetType().Name}】{path}: {sw.Elapsed.TotalMilliseconds:F2} ms");
         }
         
         protected virtual void OnExecute(string path)
@@ -155,7 +186,7 @@ namespace NTY.AssetProcessor
             var sw = Stopwatch.StartNew();
             OnExecute(path);
             sw.Stop();
-            UnityEngine.Debug.Log($"【AssetProcessor】{path}: {sw.Elapsed.TotalMilliseconds:F2} ms");
+            UnityEngine.Debug.Log($"【{this.GetType().Name}】{path}: {sw.Elapsed.TotalMilliseconds:F2} ms");
         }
 
         public void Execute(string path, PostprocessAction action)
@@ -163,7 +194,7 @@ namespace NTY.AssetProcessor
             var sw = Stopwatch.StartNew();
             OnExecute(path, action);
             sw.Stop();
-            UnityEngine.Debug.Log($"【AssetProcessor:{action}】{path}: {sw.Elapsed.TotalMilliseconds:F2} ms");
+            UnityEngine.Debug.Log($"【{this.GetType().Name}:{action}】{path}: {sw.Elapsed.TotalMilliseconds:F2} ms");
         }
         
         protected virtual void OnExecute(string path, PostprocessAction action)

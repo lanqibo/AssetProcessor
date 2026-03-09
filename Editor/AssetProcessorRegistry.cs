@@ -28,7 +28,7 @@ namespace NTY.AssetProcessor
             "Mono.",
             "UniTask"
         };
-
+        
         static AssetProcessorRegistry()
         {
             Processors.Clear();
@@ -70,8 +70,8 @@ namespace NTY.AssetProcessor
         public static IAssetProcessor[] FindProcessors(ProcessorTrigger trigger, string path, PostprocessAction action = PostprocessAction.None)
         {
             tempList.Clear();
-            
-            foreach (var processor in Processors)
+            var snapshot = Processors.ToArray();
+            foreach (var processor in snapshot)
             {
                 if (processor.Key.IsTrigger(trigger, action) && processor.Key.IsMatch(path))
                 {

@@ -1,5 +1,8 @@
 using System;
+using System.Diagnostics;
+using System.IO;
 using UnityEditor;
+using Debug = UnityEngine.Debug;
 
 namespace NTY.AssetProcessor
 {
@@ -10,6 +13,9 @@ namespace NTY.AssetProcessor
         /// </summary>
         void OnPreprocessAsset()
         {
+            if (EditorApplication.isCompiling)
+                return;
+            
             var processors = AssetProcessorRegistry.FindProcessors(ProcessorTrigger.OnPreprocessAsset, assetImporter.assetPath);
             foreach (var processor in processors)
             {
@@ -26,6 +32,11 @@ namespace NTY.AssetProcessor
         /// <param name="movedFromAssetPaths"></param>
         static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths)
         {
+            if (EditorApplication.isCompiling)
+                return;
+            
+            var sw = Stopwatch.StartNew();
+            
             foreach (var path in importedAssets)
             {
                 var processors = AssetProcessorRegistry.FindProcessors(ProcessorTrigger.OnPostprocessAllAssets, path, PostprocessAction.Imported);
@@ -61,11 +72,29 @@ namespace NTY.AssetProcessor
                     processor.Execute(path, PostprocessAction.MovedFrom);
                 }
             }
+            
+            sw.Stop();
+            Debug.LogWarning($"【OnPostprocessAllAssets】处理完成，总耗时: {sw.Elapsed.TotalMilliseconds:F2} ms");
         }
 
         private void OnPreprocessTexture()
         {
+            if (EditorApplication.isCompiling)
+                return;
+            
             var processors = AssetProcessorRegistry.FindProcessors(ProcessorTrigger.OnPreprocessTexture, assetImporter.assetPath);
+            foreach (var processor in processors)
+            {
+                processor.Execute(assetImporter);
+            }
+        }
+
+        private void OnPreprocessModel()
+        {
+            if (EditorApplication.isCompiling)
+                return;
+            
+            var processors = AssetProcessorRegistry.FindProcessors(ProcessorTrigger.OnPreprocessModel, assetImporter.assetPath);
             foreach (var processor in processors)
             {
                 processor.Execute(assetImporter);
